@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './components/Header';
 import AuthPage from './components/AuthPage';
+import SiteFooter from './components/SiteFooter';
+import CalculatorSection from './sections/CalculatorSection';
 import HomeSection, { HERO_IMAGES } from './sections/HomeSection';
 import MaterialsSection from './sections/MaterialsSection';
 import { API_BASE, authHeaders, refreshSession, safeStorage } from './services/api';
@@ -32,7 +34,14 @@ export default function App() {
   const [cart, setCart] = useState(JSON.parse(safeStorage.get('cart', '[]') || '[]'));
   const [calcId, setCalcId] = useState('');
   const [cabinetCalcs, setCabinetCalcs] = useState([]);
-  const [createClientForm, setCreateClientForm] = useState({ lastName: '', firstName: '', patronymic: '', phone: '', email: '', address: '' });
+  const [createClientForm, setCreateClientForm] = useState({
+    lastName: '',
+    firstName: '',
+    patronymic: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
   const [frameParams, setFrameParams] = useState({
     floors: 1,
     floorHeight: 2.8,
@@ -57,11 +66,16 @@ export default function App() {
 
   useEffect(() => {
     let lastY = window.scrollY;
+
     const onScroll = () => {
       const currentY = window.scrollY;
       const scrollingDown = currentY > lastY && currentY > 64;
       setCompactHeader(scrollingDown);
-      if (!scrollingDown) setMenuOpen(false);
+
+      if (!scrollingDown) {
+        setMenuOpen(false);
+      }
+
       lastY = currentY;
     };
 
@@ -81,11 +95,6 @@ export default function App() {
     }
   }, [auth.authenticated, tab]);
 
-  const visibleMaterials = useMemo(() => {
-    const query = materialFilter.toLowerCase().trim();
-    return query ? materials.filter((material) => `${material.name} ${material.unit || ''}`.toLowerCase().includes(query)) : materials;
-  }, [materialFilter, materials]);
-
   async function apiFetch(path, options = {}, retry = true) {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -94,7 +103,10 @@ export default function App() {
 
     if (response.status === 401 && retry) {
       const refreshed = await refreshSession(setAuth);
-      if (refreshed) return apiFetch(path, options, false);
+      if (refreshed) {
+        return apiFetch(path, options, false);
+      }
+
       logout(false);
     }
 
@@ -114,7 +126,10 @@ export default function App() {
     setAuth((prev) => ({ ...prev, login: '', password: '', authenticated: false, authInfo: 'guest' }));
     setClients([]);
     setCabinetCalcs([]);
-    if (withMsg) setMessage('Сессия завершена.');
+
+    if (withMsg) {
+      setMessage('Сессия завершена.');
+    }
   }
 
   async function finishAuth(data, successMessage) {
@@ -147,7 +162,9 @@ export default function App() {
         body: JSON.stringify({ login: auth.login, password: auth.password })
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        throw new Error();
+      }
 
       const data = await response.json();
       await finishAuth(data, `Вы вошли как ${data.login}.`);
@@ -194,11 +211,13 @@ export default function App() {
 
     try {
       const response = await apiFetch('/materials');
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        throw new Error();
+      }
 
       const data = await response.json();
       setMaterials(data);
-      setMessage(`Материалы загружены: ${data.length}`);
+      setMessage('');
     } catch {
       setMessage('Не удалось загрузить материалы.');
     } finally {
@@ -215,7 +234,10 @@ export default function App() {
 
     const data = await response.json();
     setClients(data);
-    if (data[0] && !selectedClientId) setSelectedClientId(String(data[0].id));
+
+    if (data[0] && !selectedClientId) {
+      setSelectedClientId(String(data[0].id));
+    }
   }
 
   async function createClient() {
@@ -432,7 +454,6 @@ export default function App() {
             materialFilter={materialFilter}
             setMaterialFilter={setMaterialFilter}
             materials={materials}
-            visibleMaterials={visibleMaterials}
             cart={cart}
             onAddToCart={addToCart}
             onRemoveFromCart={removeFromCart}
@@ -440,54 +461,24 @@ export default function App() {
         )}
 
         {tab === 'calculator' && auth.authenticated && (
-          <section className="content-grid wide">
-            <article className="card">
-              <h3>Клиент и расчёт</h3>
-              <div className="row">
-                <button type="button" onClick={loadClients}>Загрузить клиентов</button>
-                <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {`${client.lastName} ${client.firstName}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Адрес строительства" />
-              <button type="button" onClick={createCalculation}>Создать расчёт</button>
-              <input value={calcId} onChange={(event) => setCalcId(event.target.value)} placeholder="ID расчёта" />
-            </article>
-
-            <article className="card">
-              <h3>Каркас</h3>
-              <div className="row">
-                <label>Этажей</label>
-                <input type="number" min="1" max="5" value={frameParams.floors} onChange={(event) => setFrameParams((prev) => ({ ...prev, floors: event.target.value }))} />
-              </div>
-              <div className="row">
-                <label>Высота</label>
-                <input type="number" value={frameParams.floorHeight} onChange={(event) => setFrameParams((prev) => ({ ...prev, floorHeight: event.target.value }))} />
-              </div>
-              <div className="row">
-                <label>Периметр</label>
-                <input type="number" value={frameParams.perimeter} onChange={(event) => setFrameParams((prev) => ({ ...prev, perimeter: event.target.value }))} />
-              </div>
-              <button type="button" onClick={postFrame}>Рассчитать каркас</button>
-            </article>
-
-            <article className="card">
-              <h3>Фундамент</h3>
-              <div className="row">
-                <label>Периметр</label>
-                <input type="number" value={foundationParams.externalPerimeter} onChange={(event) => setFoundationParams((prev) => ({ ...prev, externalPerimeter: event.target.value }))} />
-              </div>
-              <div className="row">
-                <label>Внутр. стены</label>
-                <input type="number" value={foundationParams.innerWallLength} onChange={(event) => setFoundationParams((prev) => ({ ...prev, innerWallLength: event.target.value }))} />
-              </div>
-              <button type="button" onClick={postFoundation}>Рассчитать фундамент</button>
-            </article>
-          </section>
+          <CalculatorSection
+            clients={clients}
+            selectedClientId={selectedClientId}
+            setSelectedClientId={setSelectedClientId}
+            loadClients={loadClients}
+            address={address}
+            setAddress={setAddress}
+            createCalculation={createCalculation}
+            calcId={calcId}
+            setCalcId={setCalcId}
+            frameParams={frameParams}
+            setFrameParams={setFrameParams}
+            foundationParams={foundationParams}
+            setFoundationParams={setFoundationParams}
+            postFrame={postFrame}
+            postFoundation={postFoundation}
+            openTab={openTab}
+          />
         )}
 
         {tab === 'cabinet' && auth.authenticated && (
@@ -495,20 +486,48 @@ export default function App() {
             <article className="card">
               <h3>Новый клиент</h3>
               <div className="login-form">
-                <input placeholder="Фамилия*" value={createClientForm.lastName} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, lastName: event.target.value }))} />
-                <input placeholder="Имя*" value={createClientForm.firstName} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, firstName: event.target.value }))} />
-                <input placeholder="Отчество" value={createClientForm.patronymic} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, patronymic: event.target.value }))} />
-                <input placeholder="Телефон" value={createClientForm.phone} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, phone: event.target.value }))} />
-                <input placeholder="Email" value={createClientForm.email} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, email: event.target.value }))} />
-                <input placeholder="Адрес" value={createClientForm.address} onChange={(event) => setCreateClientForm((prev) => ({ ...prev, address: event.target.value }))} />
-                <button type="button" onClick={createClient}>Создать клиента</button>
+                <input
+                  placeholder="Фамилия*"
+                  value={createClientForm.lastName}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, lastName: event.target.value }))}
+                />
+                <input
+                  placeholder="Имя*"
+                  value={createClientForm.firstName}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, firstName: event.target.value }))}
+                />
+                <input
+                  placeholder="Отчество"
+                  value={createClientForm.patronymic}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, patronymic: event.target.value }))}
+                />
+                <input
+                  placeholder="Телефон"
+                  value={createClientForm.phone}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, phone: event.target.value }))}
+                />
+                <input
+                  placeholder="Email"
+                  value={createClientForm.email}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, email: event.target.value }))}
+                />
+                <input
+                  placeholder="Адрес"
+                  value={createClientForm.address}
+                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, address: event.target.value }))}
+                />
+                <button type="button" onClick={createClient}>
+                  Создать клиента
+                </button>
               </div>
             </article>
 
             <article className="card">
               <h3>История расчётов</h3>
               <div className="row">
-                <button type="button" onClick={loadClients}>Клиенты</button>
+                <button type="button" onClick={loadClients}>
+                  Клиенты
+                </button>
                 <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
@@ -516,7 +535,9 @@ export default function App() {
                     </option>
                   ))}
                 </select>
-                <button type="button" onClick={loadCabinet}>Обновить</button>
+                <button type="button" onClick={loadCabinet}>
+                  Обновить
+                </button>
               </div>
 
               <div className="material-list">
@@ -528,11 +549,21 @@ export default function App() {
                       <p>{calc.status || ''}</p>
                     </div>
                     <div className="status-actions">
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'ACTUAL')}>ACTUAL</button>
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'NOT_ACTUAL')}>NOT_ACTUAL</button>
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'CONTRACT_SIGNED')}>CONTRACT_SIGNED</button>
-                      <button type="button" onClick={() => copyCalculation(calc.id)}>Копия</button>
-                      <button type="button" className="danger" onClick={() => deleteCalculation(calc.id)}>Удалить</button>
+                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'ACTUAL')}>
+                        ACTUAL
+                      </button>
+                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'NOT_ACTUAL')}>
+                        NOT_ACTUAL
+                      </button>
+                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'CONTRACT_SIGNED')}>
+                        CONTRACT_SIGNED
+                      </button>
+                      <button type="button" onClick={() => copyCalculation(calc.id)}>
+                        Копия
+                      </button>
+                      <button type="button" className="danger" onClick={() => deleteCalculation(calc.id)}>
+                        Удалить
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -543,6 +574,20 @@ export default function App() {
 
         {message ? <p className="result-msg">{message}</p> : null}
       </main>
+
+      {tab !== 'auth' && (
+        <div className="main-with-header footer-shell">
+          <SiteFooter
+            authenticated={auth.authenticated}
+            tab={tab}
+            openTab={openTab}
+            loadMaterials={loadMaterials}
+            loadingMaterials={loadingMaterials}
+            materialsCount={materials.length}
+            cartCount={cart.length}
+          />
+        </div>
+      )}
     </>
   );
 }

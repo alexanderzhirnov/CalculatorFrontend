@@ -6,14 +6,13 @@ import calculatorImage from '../../media/scott-blake-wq7oyx_Kx-4-unsplash.jpg';
 import materialsImage from '../../media/jesse-orrico-L94dWXNKwrY-unsplash.jpg';
 import cabinetImage from '../../media/pop-zebra-wp81DxKUd1E-unsplash.jpg';
 import notebookVideo from '../../media/NOTEbook.mp4';
-import QuickToolsSection from './QuickToolsSection';
 
 const HERO_IMAGES = [heroFrameImage, heroBuildImage, heroConcreteImage];
 
 const PRIVATE_GALLERY_IMAGES = [
   {
     src: calculatorImage,
-    title: 'Расчеты',
+    title: 'Расчёты',
     description: 'Каркас и фундамент',
     tab: 'calculator',
     cta: 'Открыть'
@@ -186,7 +185,7 @@ function PublicLaptopShowcase({ openTab }) {
         <div className="public-laptop-copy">
           <p className="pill subtle">Preview Reel</p>
           <h2>Листай вниз и раскрывай ноутбук</h2>
-         
+
           <div className="public-laptop-meta">
             <span>Сцена открыта</span>
             <strong>{Math.round(openProgress * 100)}%</strong>
@@ -262,7 +261,10 @@ function PublicHome({ heroIndex, openTab }) {
   return (
     <>
       <section className="hero-shell">
-        <div className="hero-bg" style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.88), rgba(13, 14, 18, 0.38)), url(${HERO_IMAGES[heroIndex]})` }}>
+        <div
+          className="hero-bg"
+          style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.88), rgba(13, 14, 18, 0.38)), url(${HERO_IMAGES[heroIndex]})` }}
+        >
           <div className="hero-content fade-up">
             <p className="pill">BuildFlow</p>
             <h1>Закрытая рабочая зона для строительных проектов</h1>
@@ -300,10 +302,13 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
   return (
     <>
       <section className="hero-shell">
-        <div className="hero-bg" style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.86), rgba(13, 14, 18, 0.36)), url(${HERO_IMAGES[heroIndex]})` }}>
+        <div
+          className="hero-bg"
+          style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.86), rgba(13, 14, 18, 0.36)), url(${HERO_IMAGES[heroIndex]})` }}
+        >
           <div className="hero-content fade-up">
             <p className="pill">BuildFlow</p>
-            <h1>Материалы, расчеты и сделки в одном ритме</h1>
+            <h1>Материалы, расчёты и сделки в одном ритме</h1>
             <div className="hero-actions">
               <button type="button" onClick={() => openTab('materials')}>
                 Материалы
@@ -344,8 +349,6 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
         ))}
       </section>
 
-      <QuickToolsSection />
-
       <section className="efficiency-zone">
         <div className="efficiency-head">
           <p className="pill">Пульс проекта</p>
@@ -369,31 +372,6 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
           ))}
         </div>
       </section>
-
-      <footer className="home-footer">
-        <div className="footer-brand">
-          <h4>BuildFlow</h4>
-          <span>© 2017-2026</span>
-        </div>
-        <div>
-          <h4>Разделы</h4>
-          <p>Калькулятор</p>
-          <p>Материалы</p>
-          <p>Личный кабинет</p>
-        </div>
-        <div>
-          <h4>Данные</h4>
-          <p>API</p>
-          <p>Сметы</p>
-          <p>История</p>
-        </div>
-        <div>
-          <h4>Работа</h4>
-          <p>Клиенты</p>
-          <p>Статусы</p>
-          <p>Материалы</p>
-        </div>
-      </footer>
     </>
   );
 }

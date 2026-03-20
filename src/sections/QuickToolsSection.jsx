@@ -1,4 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+const TOOL_COPY = {
+  facade: {
+    label: 'Фасад',
+    title: 'Площадь и бюджет',
+    description: 'Быстрый ориентир по площади фасада, запасу материала и общей стоимости облицовки.'
+  },
+  concrete: {
+    label: 'Бетон',
+    title: 'Объём под плиту',
+    description: 'Проверьте объём бетона для плиты, количество миксеров и ориентир по бюджету на заливку.'
+  },
+  sheet: {
+    label: 'OSB',
+    title: 'Листы на пол',
+    description: 'Рассчитайте площадь пола, количество листов с запасом и стоимость закупки.'
+  },
+  insulation: {
+    label: 'Утепление',
+    title: 'Объём и упаковки',
+    description: 'Соберите ориентир по объёму утеплителя, упаковкам и смете для текущей площади.'
+  }
+};
 
 function formatNumber(value, digits = 1) {
   return new Intl.NumberFormat('ru-RU', {
@@ -62,7 +85,40 @@ function ResultStat({ label, value, accent }) {
   );
 }
 
-function FacadeToolCard() {
+function ToolCardFrame({ tone, index, animated, revealed, children }) {
+  const copy = TOOL_COPY[tone];
+
+  return (
+    <article
+      className={[
+        'tool-card',
+        `tool-card-${tone}`,
+        animated ? 'tool-card-animated' : '',
+        index % 2 ? 'align-right' : 'align-left',
+        revealed ? 'revealed' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      data-tool-card={tone}
+      style={{ '--index': index }}
+    >
+      <div className="tool-card-head">
+        <div className="tool-icon-wrap">
+          <ToolIcon type={tone} />
+        </div>
+        <div className="tool-card-head-copy">
+          <p>{copy.label}</p>
+          <h3>{copy.title}</h3>
+        </div>
+      </div>
+
+      <p className="tool-card-description">{copy.description}</p>
+      {children}
+    </article>
+  );
+}
+
+function FacadeToolCard({ index, animated, revealed }) {
   const [width, setWidth] = useState(9.6);
   const [height, setHeight] = useState(3.1);
   const [price, setPrice] = useState(980);
@@ -80,17 +136,7 @@ function FacadeToolCard() {
   }, [height, price, width]);
 
   return (
-    <article className="tool-card tool-card-facade">
-      <div className="tool-card-head">
-        <div className="tool-icon-wrap">
-          <ToolIcon type="facade" />
-        </div>
-        <div>
-          <p>Фасад</p>
-          <h3>Площадь и бюджет</h3>
-        </div>
-      </div>
-
+    <ToolCardFrame tone="facade" index={index} animated={animated} revealed={revealed}>
       <div className="tool-input-grid">
         <label>
           <span>Ширина, м</span>
@@ -111,11 +157,11 @@ function FacadeToolCard() {
         <ResultStat label="С запасом" value={`${formatNumber(result.reserveArea)} м²`} />
         <ResultStat label="Смета" value={formatCurrency(result.total)} />
       </div>
-    </article>
+    </ToolCardFrame>
   );
 }
 
-function ConcreteToolCard() {
+function ConcreteToolCard({ index, animated, revealed }) {
   const [length, setLength] = useState(11);
   const [width, setWidth] = useState(8);
   const [depth, setDepth] = useState(30);
@@ -133,17 +179,7 @@ function ConcreteToolCard() {
   }, [depth, length, width]);
 
   return (
-    <article className="tool-card tool-card-concrete">
-      <div className="tool-card-head">
-        <div className="tool-icon-wrap">
-          <ToolIcon type="concrete" />
-        </div>
-        <div>
-          <p>Бетон</p>
-          <h3>Объём под плиту</h3>
-        </div>
-      </div>
-
+    <ToolCardFrame tone="concrete" index={index} animated={animated} revealed={revealed}>
       <div className="tool-input-grid">
         <label>
           <span>Длина, м</span>
@@ -164,11 +200,11 @@ function ConcreteToolCard() {
         <ResultStat label="Миксеры" value={`${result.mixers} шт`} />
         <ResultStat label="Смета" value={formatCurrency(result.budget)} />
       </div>
-    </article>
+    </ToolCardFrame>
   );
 }
 
-function SheetToolCard() {
+function SheetToolCard({ index, animated, revealed }) {
   const [roomLength, setRoomLength] = useState(6.8);
   const [roomWidth, setRoomWidth] = useState(5.2);
   const [reserve, setReserve] = useState(10);
@@ -187,17 +223,7 @@ function SheetToolCard() {
   }, [reserve, roomLength, roomWidth]);
 
   return (
-    <article className="tool-card tool-card-sheet">
-      <div className="tool-card-head">
-        <div className="tool-icon-wrap">
-          <ToolIcon type="sheet" />
-        </div>
-        <div>
-          <p>OSB</p>
-          <h3>Листы на пол</h3>
-        </div>
-      </div>
-
+    <ToolCardFrame tone="sheet" index={index} animated={animated} revealed={revealed}>
       <div className="tool-input-grid">
         <label>
           <span>Длина, м</span>
@@ -218,11 +244,11 @@ function SheetToolCard() {
         <ResultStat label="Листы" value={`${result.sheets} шт`} />
         <ResultStat label="Смета" value={formatCurrency(result.budget)} />
       </div>
-    </article>
+    </ToolCardFrame>
   );
 }
 
-function InsulationToolCard() {
+function InsulationToolCard({ index, animated, revealed }) {
   const [area, setArea] = useState(124);
   const [thickness, setThickness] = useState(150);
   const [packVolume, setPackVolume] = useState(0.6);
@@ -240,17 +266,7 @@ function InsulationToolCard() {
   }, [area, packVolume, thickness]);
 
   return (
-    <article className="tool-card tool-card-insulation">
-      <div className="tool-card-head">
-        <div className="tool-icon-wrap">
-          <ToolIcon type="insulation" />
-        </div>
-        <div>
-          <p>Утепление</p>
-          <h3>Объём и упаковки</h3>
-        </div>
-      </div>
-
+    <ToolCardFrame tone="insulation" index={index} animated={animated} revealed={revealed}>
       <div className="tool-input-grid">
         <label>
           <span>Площадь, м²</span>
@@ -271,23 +287,91 @@ function InsulationToolCard() {
         <ResultStat label="Упаковки" value={`${result.packs} шт`} />
         <ResultStat label="Смета" value={formatCurrency(result.budget)} />
       </div>
-    </article>
+    </ToolCardFrame>
   );
 }
 
-export default function QuickToolsSection() {
+const TOOL_COMPONENTS = [
+  { key: 'facade', Component: FacadeToolCard },
+  { key: 'concrete', Component: ConcreteToolCard },
+  { key: 'sheet', Component: SheetToolCard },
+  { key: 'insulation', Component: InsulationToolCard }
+];
+
+export default function QuickToolsSection({
+  layout = 'grid',
+  animated = false,
+  title = 'Четыре живых инструмента прямо на странице',
+  kicker = 'Быстрые расчёты',
+  intro = '',
+  showSuiteNote = false,
+  className = ''
+}) {
+  const sectionRef = useRef(null);
+  const [visibleCards, setVisibleCards] = useState({});
+  const isVertical = layout === 'vertical';
+
+  useEffect(() => {
+    if (!animated) {
+      setVisibleCards({ 0: true, 1: true, 2: true, 3: true });
+      return undefined;
+    }
+
+    const sectionNode = sectionRef.current;
+    if (!sectionNode) return undefined;
+
+    const cards = sectionNode.querySelectorAll('[data-tool-card]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.style.getPropertyValue('--index'));
+            setVisibleCards((prev) => ({ ...prev, [index]: true }));
+          }
+        });
+      },
+      { threshold: 0.28 }
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [animated]);
+
   return (
-    <section className="tool-suite">
-      <div className="tool-suite-head">
-        <p className="pill">Быстрые расчёты</p>
-        <h2>Четыре живых инструмента прямо на странице</h2>
+    <section
+      ref={sectionRef}
+      className={[
+        'tool-suite',
+        isVertical ? 'tool-suite-vertical' : '',
+        className
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <div className={`tool-suite-head ${isVertical ? 'tool-suite-head-vertical' : ''}`}>
+        <div className="tool-suite-copy">
+          <p className="pill">{kicker}</p>
+          <h2>{title}</h2>
+          {intro ? <p className="tool-suite-description">{intro}</p> : null}
+        </div>
+
+        {showSuiteNote ? (
+          <div className="tool-suite-note">
+            <strong>4</strong>
+            <span>живых мини-калькулятора</span>
+          </div>
+        ) : null}
       </div>
 
-      <div className="tool-suite-grid">
-        <FacadeToolCard />
-        <ConcreteToolCard />
-        <SheetToolCard />
-        <InsulationToolCard />
+      <div className={`tool-suite-grid ${isVertical ? 'tool-suite-grid-vertical' : ''}`}>
+        {TOOL_COMPONENTS.map(({ key, Component }, index) => (
+          <Component
+            key={key}
+            index={index}
+            animated={animated}
+            revealed={animated ? Boolean(visibleCards[index]) : true}
+          />
+        ))}
       </div>
     </section>
   );
