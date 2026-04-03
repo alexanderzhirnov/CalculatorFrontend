@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { BRAND_NAME } from '../utils/dashboard';
 
 export default function AuthModal(props) {
   const { open, close, auth, authMode, setAuthMode, loadingAuth, loadingRegister, registerForm, setRegisterForm, setAuth, onLogin, onRegister, onRefresh, onLogout } = props;
@@ -23,7 +24,7 @@ export default function AuthModal(props) {
     <div className="auth-modal-backdrop" onClick={close}>
       <div className="auth-modal card gradient-border" onClick={(e) => e.stopPropagation()}>
         <div className="auth-modal-head">
-          <h3>{auth.authenticated ? `Профиль: ${auth.authInfo}` : 'Вход в BuildFlow'}</h3>
+          <h3>{auth.authenticated ? `Профиль: ${auth.authInfo}` : `Вход в ${BRAND_NAME}`}</h3>
           <button className="ghost" type="button" onClick={close}>✕</button>
         </div>
 

@@ -1,11 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Header from './components/Header';
 import AuthPage from './components/AuthPage';
 import SiteFooter from './components/SiteFooter';
 import CalculatorSection from './sections/CalculatorSection';
+import CabinetSection from './sections/CabinetSection';
 import HomeSection, { HERO_IMAGES } from './sections/HomeSection';
 import MaterialsSection from './sections/MaterialsSection';
 import { API_BASE, authHeaders, refreshSession, safeStorage } from './services/api';
+
+function sortCalculations(calculations = []) {
+  return [...calculations].sort(
+    (left, right) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime()
+  );
+}
+
+const EMPTY_CLIENT_FORM = {
+  lastName: '',
+  firstName: '',
+  patronymic: '',
+  phone: '',
+  email: '',
+  address: ''
+};
+
+const WALL_INSULATION_BY_THICKNESS = {
+  MM_100: 'Эковер 100 мм',
+  MM_150: 'Эковер 150 мм',
+  MM_200: 'Эковер 200 мм',
+  MM_250: 'Эковер 250 мм'
+};
+
+const CEILING_INSULATION_BY_THICKNESS = {
+  MM_200: 'Эковер 200 мм',
+  MM_250: 'Эковер 250 мм'
+};
 
 export default function App() {
   const [tab, setTab] = useState('home');
@@ -26,6 +54,8 @@ export default function App() {
   });
 
   const [registerForm, setRegisterForm] = useState({ login: '', password: '', firstName: '', lastName: '' });
+  const [clientForm, setClientForm] = useState(EMPTY_CLIENT_FORM);
+  const [creatingClient, setCreatingClient] = useState(false);
   const [materialFilter, setMaterialFilter] = useState('');
   const [materials, setMaterials] = useState([]);
   const [clients, setClients] = useState([]);
@@ -34,14 +64,6 @@ export default function App() {
   const [cart, setCart] = useState(JSON.parse(safeStorage.get('cart', '[]') || '[]'));
   const [calcId, setCalcId] = useState('');
   const [cabinetCalcs, setCabinetCalcs] = useState([]);
-  const [createClientForm, setCreateClientForm] = useState({
-    lastName: '',
-    firstName: '',
-    patronymic: '',
-    phone: '',
-    email: '',
-    address: ''
-  });
   const [frameParams, setFrameParams] = useState({
     floors: 1,
     floorHeight: 2.8,
@@ -58,6 +80,19 @@ export default function App() {
     pileType: 'Бетонные сваи 200*200*3000',
     concreteGrade: 'М300 (В22.5)'
   });
+
+  const selectedClient = useMemo(
+    () => clients.find((client) => String(client.id) === String(selectedClientId)),
+    [clients, selectedClientId]
+  );
+
+  const recentCalculations = useMemo(() => {
+    if (cabinetCalcs.length) {
+      return sortCalculations(cabinetCalcs);
+    }
+
+    return sortCalculations(selectedClient?.calculations || []);
+  }, [cabinetCalcs, selectedClient]);
 
   useEffect(() => {
     const timer = setInterval(() => setHeroIndex((prev) => (prev + 1) % HERO_IMAGES.length), 6000);
@@ -95,6 +130,42 @@ export default function App() {
     }
   }, [auth.authenticated, tab]);
 
+  useEffect(() => {
+    if (auth.authenticated && !clients.length) {
+      loadClients();
+    }
+  }, [auth.authenticated, clients.length]);
+
+  useEffect(() => {
+    setCabinetCalcs([]);
+  }, [selectedClientId]);
+
+  useEffect(() => {
+    if (!selectedClient) {
+      setCalcId('');
+      return;
+    }
+
+    const clientCalculations = sortCalculations(selectedClient.calculations || []);
+    if (!clientCalculations.length) {
+      if (!cabinetCalcs.length) {
+        setCalcId('');
+      }
+      return;
+    }
+
+    const hasCurrent = clientCalculations.some((calculation) => String(calculation.id) === String(calcId));
+    if (!hasCurrent) {
+      setCalcId(String(clientCalculations[0].id));
+    }
+  }, [selectedClient, cabinetCalcs.length, calcId]);
+
+  useEffect(() => {
+    if (['calculator', 'cabinet'].includes(tab) && auth.authenticated && selectedClientId) {
+      loadCabinet();
+    }
+  }, [tab, auth.authenticated, selectedClientId]);
+
   async function apiFetch(path, options = {}, retry = true) {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -125,11 +196,43 @@ export default function App() {
     safeStorage.remove('login');
     setAuth((prev) => ({ ...prev, login: '', password: '', authenticated: false, authInfo: 'guest' }));
     setClients([]);
+    setSelectedClientId('');
+    setCalcId('');
     setCabinetCalcs([]);
 
     if (withMsg) {
       setMessage('Сессия завершена.');
     }
+  }
+
+  async function loadClients(options = {}) {
+    const response = await apiFetch('/clients');
+    if (!response.ok) {
+      setMessage('Не удалось загрузить клиентов.');
+      return [];
+    }
+
+    const data = await response.json();
+    setClients(data);
+
+    if (!data.length) {
+      setSelectedClientId('');
+      setCalcId('');
+      return data;
+    }
+
+    const preferredClientId = options.preferredClientId || selectedClientId;
+    const nextClient = data.find((client) => String(client.id) === String(preferredClientId)) || data[0];
+    const nextClientId = String(nextClient.id);
+    setSelectedClientId(nextClientId);
+
+    const nextCalculations = sortCalculations(nextClient.calculations || []);
+    const preferredCalcId = options.preferredCalcId || calcId;
+    const nextCalc =
+      nextCalculations.find((calculation) => String(calculation.id) === String(preferredCalcId)) || nextCalculations[0];
+
+    setCalcId(nextCalc ? String(nextCalc.id) : '');
+    return data;
   }
 
   async function finishAuth(data, successMessage) {
@@ -148,6 +251,17 @@ export default function App() {
     setAuthMode('login');
     navigateToTab('home');
     setMessage(successMessage);
+    await loadClients();
+  }
+
+  async function handleRefreshSession() {
+    const refreshed = await refreshSession(setAuth);
+    if (!refreshed) {
+      setMessage('Не удалось обновить сессию.');
+      return;
+    }
+
+    setMessage('Сессия обновлена.');
     await loadClients();
   }
 
@@ -225,38 +339,6 @@ export default function App() {
     }
   }
 
-  async function loadClients() {
-    const response = await apiFetch('/clients');
-    if (!response.ok) {
-      setMessage('Не удалось загрузить клиентов.');
-      return;
-    }
-
-    const data = await response.json();
-    setClients(data);
-
-    if (data[0] && !selectedClientId) {
-      setSelectedClientId(String(data[0].id));
-    }
-  }
-
-  async function createClient() {
-    const response = await apiFetch('/clients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(createClientForm)
-    });
-
-    if (!response.ok) {
-      setMessage('Ошибка создания клиента.');
-      return;
-    }
-
-    setCreateClientForm({ lastName: '', firstName: '', patronymic: '', phone: '', email: '', address: '' });
-    setMessage('Клиент создан.');
-    await loadClients();
-  }
-
   async function createCalculation() {
     if (!selectedClientId) {
       setMessage('Сначала выберите клиента.');
@@ -276,12 +358,59 @@ export default function App() {
 
     const data = await response.json();
     setCalcId(String(data.id));
-    setMessage(`Расчёт #${data.id} создан.`);
+    setMessage('Расчёт создан.');
+    await loadClients({ preferredClientId: selectedClientId, preferredCalcId: data.id });
+  }
+
+  async function createClient() {
+    const payload = {
+      lastName: clientForm.lastName.trim(),
+      firstName: clientForm.firstName.trim(),
+      patronymic: clientForm.patronymic.trim(),
+      phone: clientForm.phone.trim(),
+      email: clientForm.email.trim(),
+      address: clientForm.address.trim()
+    };
+
+    if (!payload.lastName || !payload.firstName) {
+      setMessage('Укажите имя и фамилию клиента.');
+      return;
+    }
+
+    setCreatingClient(true);
+
+    try {
+      const response = await apiFetch('/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          patronymic: payload.patronymic || null,
+          phone: payload.phone || null,
+          email: payload.email || null,
+          address: payload.address || null
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Не удалось создать клиента.');
+      }
+
+      const createdClient = await response.json();
+      setClientForm(EMPTY_CLIENT_FORM);
+      await loadClients({ preferredClientId: createdClient.id });
+      setMessage(`Клиент ${createdClient.lastName} ${createdClient.firstName} добавлен.`);
+    } catch (error) {
+      setMessage(error.message || 'Не удалось создать клиента.');
+    } finally {
+      setCreatingClient(false);
+    }
   }
 
   async function postFrame() {
     if (!calcId) {
-      setMessage('Укажите ID расчёта.');
+      setMessage('Сначала выберите расчёт.');
       return;
     }
 
@@ -292,10 +421,19 @@ export default function App() {
       extWallThickness: frameParams.extWallThickness,
       innerWallLength: Number(frameParams.innerWallLength),
       intWallThickness: frameParams.intWallThickness,
+      extOsb: 'OSB 9 мм',
+      extVapor: 'Ондутис',
+      extWindBarrier: 'Паро-проницаемая ветро-влагозащита A Optima',
+      extInsulation: WALL_INSULATION_BY_THICKNESS[frameParams.extWallThickness] || 'Эковер 150 мм',
+      intOsb: 'OSB 9 мм',
       ceilingThickness: frameParams.ceilingThickness,
-      windows: [{ width: 1.4, height: 1.4, count: 8 }],
-      externalDoors: [{ width: 1, height: 2.1, count: 2 }],
-      internalDoors: [{ width: 0.9, height: 2.1, count: 6 }]
+      ceilingOsb: 'OSB 9 мм',
+      ceilingVapor: 'Ондутис',
+      ceilingWindBarrier: 'Гидро-ветрозащита Тип А',
+      ceilingInsulation: CEILING_INSULATION_BY_THICKNESS[frameParams.ceilingThickness] || 'Эковер 200 мм',
+      windows: [{ width: 1.4, height: 1.4, quantity: 8 }],
+      externalDoors: [{ width: 1, height: 2.1, quantity: 2 }],
+      internalDoors: [{ width: 0.9, height: 2.1, quantity: 6 }]
     };
 
     const payload = {
@@ -309,12 +447,18 @@ export default function App() {
       body: JSON.stringify(payload)
     });
 
-    setMessage(response.ok ? 'Каркас рассчитан.' : 'Ошибка расчёта каркаса.');
+    if (!response.ok) {
+      setMessage('Ошибка расчёта каркаса.');
+      return;
+    }
+
+    await loadCabinet();
+    setMessage('Каркас рассчитан.');
   }
 
   async function postFoundation() {
     if (!calcId) {
-      setMessage('Укажите ID расчёта.');
+      setMessage('Сначала выберите расчёт.');
       return;
     }
 
@@ -328,7 +472,13 @@ export default function App() {
       })
     });
 
-    setMessage(response.ok ? 'Фундамент рассчитан.' : 'Ошибка расчёта фундамента.');
+    if (!response.ok) {
+      setMessage('Ошибка расчёта фундамента.');
+      return;
+    }
+
+    await loadCabinet();
+    setMessage('Фундамент рассчитан.');
   }
 
   async function loadCabinet() {
@@ -343,7 +493,12 @@ export default function App() {
       return;
     }
 
-    setCabinetCalcs(await response.json());
+    const data = sortCalculations(await response.json());
+    setCabinetCalcs(data);
+
+    if (!calcId && data[0]) {
+      setCalcId(String(data[0].id));
+    }
   }
 
   async function updateCalcStatus(id, status) {
@@ -358,7 +513,8 @@ export default function App() {
       return;
     }
 
-    setMessage(`Статус #${id} обновлён.`);
+    setMessage('Статус расчёта обновлён.');
+    await loadClients({ preferredClientId: selectedClientId, preferredCalcId: calcId });
     await loadCabinet();
   }
 
@@ -369,7 +525,8 @@ export default function App() {
       return;
     }
 
-    setMessage(`Расчёт #${id} скопирован.`);
+    setMessage('Копия расчёта создана.');
+    await loadClients({ preferredClientId: selectedClientId });
     await loadCabinet();
   }
 
@@ -380,7 +537,12 @@ export default function App() {
       return;
     }
 
-    setMessage(`Расчёт #${id} удалён.`);
+    if (String(calcId) === String(id)) {
+      setCalcId('');
+    }
+
+    setMessage('Расчёт удалён.');
+    await loadClients({ preferredClientId: selectedClientId });
     await loadCabinet();
   }
 
@@ -406,6 +568,10 @@ export default function App() {
 
     if (nextTab === 'materials' && auth.authenticated && !materials.length && !loadingMaterials) {
       loadMaterials();
+    }
+
+    if (['calculator', 'cabinet'].includes(nextTab) && auth.authenticated && !clients.length) {
+      loadClients();
     }
   }
 
@@ -434,7 +600,7 @@ export default function App() {
             setAuth={setAuth}
             onLogin={onLogin}
             onRegister={onRegister}
-            onRefresh={async () => setMessage((await refreshSession(setAuth)) ? 'Сессия обновлена.' : 'Не удалось обновить сессию.')}
+            onRefresh={handleRefreshSession}
             onLogout={() => {
               logout(true);
               navigateToTab('home');
@@ -469,6 +635,10 @@ export default function App() {
             address={address}
             setAddress={setAddress}
             createCalculation={createCalculation}
+            clientForm={clientForm}
+            setClientForm={setClientForm}
+            createClient={createClient}
+            creatingClient={creatingClient}
             calcId={calcId}
             setCalcId={setCalcId}
             frameParams={frameParams}
@@ -478,116 +648,36 @@ export default function App() {
             postFrame={postFrame}
             postFoundation={postFoundation}
             openTab={openTab}
+            recentCalculations={recentCalculations}
           />
         )}
 
         {tab === 'cabinet' && auth.authenticated && (
-          <section className="content-grid wide">
-            <article className="card">
-              <h3>Новый клиент</h3>
-              <div className="login-form">
-                <input
-                  placeholder="Фамилия*"
-                  value={createClientForm.lastName}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, lastName: event.target.value }))}
-                />
-                <input
-                  placeholder="Имя*"
-                  value={createClientForm.firstName}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, firstName: event.target.value }))}
-                />
-                <input
-                  placeholder="Отчество"
-                  value={createClientForm.patronymic}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, patronymic: event.target.value }))}
-                />
-                <input
-                  placeholder="Телефон"
-                  value={createClientForm.phone}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, phone: event.target.value }))}
-                />
-                <input
-                  placeholder="Email"
-                  value={createClientForm.email}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, email: event.target.value }))}
-                />
-                <input
-                  placeholder="Адрес"
-                  value={createClientForm.address}
-                  onChange={(event) => setCreateClientForm((prev) => ({ ...prev, address: event.target.value }))}
-                />
-                <button type="button" onClick={createClient}>
-                  Создать клиента
-                </button>
-              </div>
-            </article>
-
-            <article className="card">
-              <h3>История расчётов</h3>
-              <div className="row">
-                <button type="button" onClick={loadClients}>
-                  Клиенты
-                </button>
-                <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {`${client.lastName} ${client.firstName}`}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" onClick={loadCabinet}>
-                  Обновить
-                </button>
-              </div>
-
-              <div className="material-list">
-                {cabinetCalcs.map((calc) => (
-                  <div key={calc.id} className="material-item stack">
-                    <div>
-                      <strong>#{calc.id}</strong>
-                      <p>{calc.constructionAddress || ''}</p>
-                      <p>{calc.status || ''}</p>
-                    </div>
-                    <div className="status-actions">
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'ACTUAL')}>
-                        ACTUAL
-                      </button>
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'NOT_ACTUAL')}>
-                        NOT_ACTUAL
-                      </button>
-                      <button type="button" onClick={() => updateCalcStatus(calc.id, 'CONTRACT_SIGNED')}>
-                        CONTRACT_SIGNED
-                      </button>
-                      <button type="button" onClick={() => copyCalculation(calc.id)}>
-                        Копия
-                      </button>
-                      <button type="button" className="danger" onClick={() => deleteCalculation(calc.id)}>
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </section>
+          <CabinetSection
+            clients={clients}
+            selectedClientId={selectedClientId}
+            setSelectedClientId={setSelectedClientId}
+            loadClients={loadClients}
+            loadCabinet={loadCabinet}
+            cabinetCalcs={cabinetCalcs}
+            updateCalcStatus={updateCalcStatus}
+            copyCalculation={copyCalculation}
+            deleteCalculation={deleteCalculation}
+          />
         )}
 
         {message ? <p className="result-msg">{message}</p> : null}
       </main>
 
-      {tab !== 'auth' && (
-        <div className="main-with-header footer-shell">
-          <SiteFooter
-            authenticated={auth.authenticated}
-            tab={tab}
-            openTab={openTab}
-            loadMaterials={loadMaterials}
-            loadingMaterials={loadingMaterials}
-            materialsCount={materials.length}
-            cartCount={cart.length}
-          />
-        </div>
-      )}
+      <SiteFooter
+        authenticated={auth.authenticated}
+        tab={tab}
+        openTab={openTab}
+        loadMaterials={loadMaterials}
+        loadingMaterials={loadingMaterials}
+        materialsCount={materials.length}
+        cartCount={cart.length}
+      />
     </>
   );
 }

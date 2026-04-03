@@ -144,7 +144,7 @@ export default function MaterialsSection(props) {
 
             <div className="materials-toolbar">
               <button type="button" onClick={loadMaterials} disabled={loadingMaterials}>
-                {loadingMaterials ? 'Обновляем...' : 'Обновить'}
+                {loadingMaterials ? 'Ищем...' : 'Поиск'}
               </button>
 
               <label className="search-shell">
@@ -281,7 +281,7 @@ export default function MaterialsSection(props) {
             <p className="pill subtle">Материалы</p>
             <h3>Ничего не найдено</h3>
             <button type="button" onClick={loadMaterials} disabled={loadingMaterials}>
-              {loadingMaterials ? 'Загружаем...' : 'Обновить каталог'}
+              {loadingMaterials ? 'Ищем...' : 'Поиск'}
             </button>
           </article>
         )}

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import authBackground from '../../media/auth.jpg';
+import { BRAND_NAME } from '../utils/dashboard';
 
 function CraneIntro({ onSkip }) {
   return (
     <div className="auth-intro-screen">
       <div className="auth-intro-copy">
-        <p className="pill">BuildFlow Access</p>
+        <p className="pill">Доступ в {BRAND_NAME}</p>
         <h2>Собираем вход в рабочую зону</h2>
         <button className="ghost auth-intro-skip" type="button" onClick={onSkip}>Пропустить</button>
       </div>
@@ -81,7 +82,7 @@ export default function AuthPage(props) {
     <section className="auth-page" style={{ backgroundImage: `linear-gradient(180deg, rgba(6, 16, 34, 0.54), rgba(5, 14, 30, 0.78)), url(${authBackground})` }}>
       <div className="auth-page-shell auth-page-shell-minimal">
         <aside className="card auth-page-aside auth-page-aside-minimal">
-          <p className="pill">BuildFlow</p>
+          <p className="pill">{BRAND_NAME}</p>
           <h2>{auth.authenticated ? 'Сессия активна' : authMode === 'login' ? 'Вход' : 'Регистрация'}</h2>
           <span className="auth-aside-line" />
         </aside>
@@ -167,7 +168,7 @@ export default function AuthPage(props) {
               <div className="auth-shortcuts">
                 <button className="ghost" type="button" onClick={() => onOpenTab('home')}>Главная</button>
                 <button className="ghost" type="button" onClick={() => onOpenTab('materials')}>Материалы</button>
-                <button className="ghost" type="button" onClick={() => onOpenTab('cabinet')}>Кабинет</button>
+                <button className="ghost" type="button" onClick={() => onOpenTab('cabinet')}>Личный кабинет</button>
               </div>
             </div>
           )}

@@ -85,7 +85,7 @@ function ResultStat({ label, value, accent }) {
   );
 }
 
-function ToolCardFrame({ tone, index, animated, revealed, children }) {
+function ToolCardFrame({ tone, index, animated, revealed, workspace, children }) {
   const copy = TOOL_COPY[tone];
 
   return (
@@ -93,8 +93,10 @@ function ToolCardFrame({ tone, index, animated, revealed, children }) {
       className={[
         'tool-card',
         `tool-card-${tone}`,
-        animated ? 'tool-card-animated' : '',
-        index % 2 ? 'align-right' : 'align-left',
+        workspace ? 'tool-card-workspace' : '',
+        animated ? (workspace ? 'tool-card-mounted' : 'tool-card-animated') : '',
+        !workspace && index % 2 ? 'align-right' : '',
+        !workspace && index % 2 === 0 ? 'align-left' : '',
         revealed ? 'revealed' : ''
       ]
         .filter(Boolean)
@@ -118,7 +120,7 @@ function ToolCardFrame({ tone, index, animated, revealed, children }) {
   );
 }
 
-function FacadeToolCard({ index, animated, revealed }) {
+function FacadeToolCard({ index, animated, revealed, workspace }) {
   const [width, setWidth] = useState(9.6);
   const [height, setHeight] = useState(3.1);
   const [price, setPrice] = useState(980);
@@ -136,7 +138,7 @@ function FacadeToolCard({ index, animated, revealed }) {
   }, [height, price, width]);
 
   return (
-    <ToolCardFrame tone="facade" index={index} animated={animated} revealed={revealed}>
+    <ToolCardFrame tone="facade" index={index} animated={animated} revealed={revealed} workspace={workspace}>
       <div className="tool-input-grid">
         <label>
           <span>Ширина, м</span>
@@ -161,7 +163,7 @@ function FacadeToolCard({ index, animated, revealed }) {
   );
 }
 
-function ConcreteToolCard({ index, animated, revealed }) {
+function ConcreteToolCard({ index, animated, revealed, workspace }) {
   const [length, setLength] = useState(11);
   const [width, setWidth] = useState(8);
   const [depth, setDepth] = useState(30);
@@ -179,7 +181,7 @@ function ConcreteToolCard({ index, animated, revealed }) {
   }, [depth, length, width]);
 
   return (
-    <ToolCardFrame tone="concrete" index={index} animated={animated} revealed={revealed}>
+    <ToolCardFrame tone="concrete" index={index} animated={animated} revealed={revealed} workspace={workspace}>
       <div className="tool-input-grid">
         <label>
           <span>Длина, м</span>
@@ -204,7 +206,7 @@ function ConcreteToolCard({ index, animated, revealed }) {
   );
 }
 
-function SheetToolCard({ index, animated, revealed }) {
+function SheetToolCard({ index, animated, revealed, workspace }) {
   const [roomLength, setRoomLength] = useState(6.8);
   const [roomWidth, setRoomWidth] = useState(5.2);
   const [reserve, setReserve] = useState(10);
@@ -223,7 +225,7 @@ function SheetToolCard({ index, animated, revealed }) {
   }, [reserve, roomLength, roomWidth]);
 
   return (
-    <ToolCardFrame tone="sheet" index={index} animated={animated} revealed={revealed}>
+    <ToolCardFrame tone="sheet" index={index} animated={animated} revealed={revealed} workspace={workspace}>
       <div className="tool-input-grid">
         <label>
           <span>Длина, м</span>
@@ -248,7 +250,7 @@ function SheetToolCard({ index, animated, revealed }) {
   );
 }
 
-function InsulationToolCard({ index, animated, revealed }) {
+function InsulationToolCard({ index, animated, revealed, workspace }) {
   const [area, setArea] = useState(124);
   const [thickness, setThickness] = useState(150);
   const [packVolume, setPackVolume] = useState(0.6);
@@ -266,7 +268,7 @@ function InsulationToolCard({ index, animated, revealed }) {
   }, [area, packVolume, thickness]);
 
   return (
-    <ToolCardFrame tone="insulation" index={index} animated={animated} revealed={revealed}>
+    <ToolCardFrame tone="insulation" index={index} animated={animated} revealed={revealed} workspace={workspace}>
       <div className="tool-input-grid">
         <label>
           <span>Площадь, м²</span>
@@ -300,6 +302,7 @@ const TOOL_COMPONENTS = [
 
 export default function QuickToolsSection({
   layout = 'grid',
+  variant = 'default',
   animated = false,
   title = 'Четыре живых инструмента прямо на странице',
   kicker = 'Быстрые расчёты',
@@ -310,11 +313,20 @@ export default function QuickToolsSection({
   const sectionRef = useRef(null);
   const [visibleCards, setVisibleCards] = useState({});
   const isVertical = layout === 'vertical';
+  const isWorkspace = variant === 'workspace';
 
   useEffect(() => {
     if (!animated) {
       setVisibleCards({ 0: true, 1: true, 2: true, 3: true });
       return undefined;
+    }
+
+    if (isWorkspace) {
+      const timer = window.setTimeout(() => {
+        setVisibleCards({ 0: true, 1: true, 2: true, 3: true });
+      }, 40);
+
+      return () => window.clearTimeout(timer);
     }
 
     const sectionNode = sectionRef.current;
@@ -335,7 +347,7 @@ export default function QuickToolsSection({
 
     cards.forEach((card) => observer.observe(card));
     return () => observer.disconnect();
-  }, [animated]);
+  }, [animated, isWorkspace]);
 
   return (
     <section
@@ -343,6 +355,7 @@ export default function QuickToolsSection({
       className={[
         'tool-suite',
         isVertical ? 'tool-suite-vertical' : '',
+        isWorkspace ? 'tool-suite-workspace' : '',
         className
       ]
         .filter(Boolean)
@@ -363,13 +376,14 @@ export default function QuickToolsSection({
         ) : null}
       </div>
 
-      <div className={`tool-suite-grid ${isVertical ? 'tool-suite-grid-vertical' : ''}`}>
+      <div className={`tool-suite-grid ${isVertical ? 'tool-suite-grid-vertical' : ''} ${isWorkspace ? 'tool-suite-grid-workspace' : ''}`}>
         {TOOL_COMPONENTS.map(({ key, Component }, index) => (
           <Component
             key={key}
             index={index}
             animated={animated}
             revealed={animated ? Boolean(visibleCards[index]) : true}
+            workspace={isWorkspace}
           />
         ))}
       </div>

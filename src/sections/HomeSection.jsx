@@ -6,72 +6,71 @@ import calculatorImage from '../../media/scott-blake-wq7oyx_Kx-4-unsplash.jpg';
 import materialsImage from '../../media/jesse-orrico-L94dWXNKwrY-unsplash.jpg';
 import cabinetImage from '../../media/pop-zebra-wp81DxKUd1E-unsplash.jpg';
 import notebookVideo from '../../media/NOTEbook.mp4';
+import { BRAND_NAME } from '../utils/dashboard';
 
 const HERO_IMAGES = [heroFrameImage, heroBuildImage, heroConcreteImage];
 
-const PRIVATE_GALLERY_IMAGES = [
+const MODULE_ITEMS = [
   {
     src: calculatorImage,
     title: 'Расчёты',
-    description: 'Каркас и фундамент',
-    tab: 'calculator',
-    cta: 'Открыть'
+    tab: 'calculator'
   },
   {
     src: materialsImage,
     title: 'Материалы',
-    description: 'Каталог и корзина',
-    tab: 'materials',
-    cta: 'Открыть'
+    tab: 'materials'
   },
   {
     src: cabinetImage,
-    title: 'Кабинет',
-    description: 'Клиенты и сделки',
-    tab: 'cabinet',
-    cta: 'Открыть'
+    title: 'Личный кабинет',
+    tab: 'cabinet'
   }
 ];
 
-const PRIVATE_SIGNAL_ITEMS = [
-  { value: '4', label: 'живых мини-калькулятора' },
-  { value: '1', label: 'каталог материалов' },
-  { value: '3', label: 'рабочих раздела' }
+const WORKSPACE_SIGNAL_ITEMS = [
+  { value: '4', label: 'калькулятора' },
+  { value: '1', label: 'каталог' },
+  { value: '3', label: 'раздела' }
 ];
 
 const PUBLIC_SIGNAL_ITEMS = [
-  { value: '01', label: 'единая точка входа' },
-  { value: '02', label: 'чистый старт без лишнего шума' },
-  { value: '03', label: 'доступ к рабочей зоне после входа' }
+  { value: '01', label: 'доступ без входа' },
+  { value: '02', label: 'разделы после входа' },
+  { value: '03', label: 'поддержка внизу' }
 ];
 
-const ANALYTICS_WIDGETS = [
+const VIDEO_INFO_ITEMS = [
   {
-    title: 'Сокращение сроков',
-    value: 34,
-    subtitle: 'Подготовка сметы быстрее',
-    type: 'ring'
+    value: '2 минуты',
+    title: 'На старт расчёта'
   },
   {
-    title: 'Экономия бюджета',
-    value: 28,
-    subtitle: 'Меньше перерасхода',
-    type: 'bars',
-    bars: [38, 52, 63, 78, 91]
+    value: '3 сценария',
+    title: 'В одном потоке'
   },
   {
-    title: 'Точность планирования',
-    value: 93,
-    subtitle: 'Точный прогноз по ресурсам',
-    type: 'line',
-    points: '4,76 42,50 78,58 116,30 152,42 190,18'
+    value: 'API и CRM',
+    title: 'Под интеграции'
+  }
+];
+
+const SYSTEM_PULSE_ITEMS = [
+  {
+    value: '4',
+    title: 'Инструмента'
   },
   {
-    title: 'Продуктивность команды',
-    value: 41,
-    subtitle: 'Выше темп работы',
-    type: 'progress',
-    segments: [41, 27, 18, 14]
+    value: '3',
+    title: 'Раздела'
+  },
+  {
+    value: '1',
+    title: 'Канал поддержки'
+  },
+  {
+    value: '1',
+    title: 'Контур развития'
   }
 ];
 
@@ -81,53 +80,50 @@ function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
 
-function WidgetVisual({ widget, revealed }) {
-  if (widget.type === 'ring') {
-    return (
-      <div className={`metric-visual ring ${revealed ? 'revealed' : ''}`} style={{ '--progress': widget.value }}>
-        <div className="ring-value">{widget.value}%</div>
-      </div>
-    );
-  }
-
-  if (widget.type === 'bars') {
-    return (
-      <div className="metric-visual bars">
-        {widget.bars.map((bar, index) => (
-          <span
-            key={`${widget.title}-${bar}`}
-            className={revealed ? 'revealed' : ''}
-            style={{ '--bar': `${bar}%`, '--delay': `${index * 110}ms` }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (widget.type === 'line') {
-    return (
-      <div className={`metric-visual line ${revealed ? 'revealed' : ''}`}>
-        <svg viewBox="0 0 200 90" preserveAspectRatio="none" aria-hidden="true">
-          <polyline points={widget.points} />
-        </svg>
-      </div>
-    );
-  }
-
+function WorkspaceLaunchpad({ authenticated, openTab }) {
   return (
-    <div className="metric-visual progress">
-      {widget.segments.map((segment, index) => (
-        <span
-          key={`${widget.title}-segment-${segment}`}
-          className={revealed ? 'revealed' : ''}
-          style={{ '--segment': `${segment}%`, '--delay': `${index * 120}ms` }}
-        />
-      ))}
-    </div>
+    <section className="workspace-launchpad">
+      <div className="workspace-launchpad-head">
+        <div className="workspace-launchpad-copy">
+          <p className="pill">Разделы</p>
+          <h2>Быстрый доступ</h2>
+        </div>
+
+        <div className="workspace-signal-strip">
+          {WORKSPACE_SIGNAL_ITEMS.map((item) => (
+            <article className="workspace-signal-card" key={item.label}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <section className="media-grid media-grid-compact">
+        {MODULE_ITEMS.map((item) => (
+          <article
+            className="media-card interactive compact-media-card"
+            key={item.title}
+            onClick={() => openTab(authenticated ? item.tab : 'auth')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) =>
+              (event.key === 'Enter' || event.key === ' ') && openTab(authenticated ? item.tab : 'auth')
+            }
+          >
+            <img src={item.src} alt={item.title} />
+            <div className="media-card-body">
+              <p>{item.title}</p>
+              <span>{authenticated ? 'Перейти' : 'Открыть'}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+    </section>
   );
 }
 
-function PublicLaptopShowcase({ openTab }) {
+function CalculatorPreviewSection({ authenticated, openTab }) {
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
   const [openProgress, setOpenProgress] = useState(0);
@@ -183,16 +179,21 @@ function PublicLaptopShowcase({ openTab }) {
     <section ref={sectionRef} className="public-laptop-showcase">
       <div className="public-laptop-stage">
         <div className="public-laptop-copy">
-          <p className="pill subtle">Preview Reel</p>
-          <h2>Листай вниз и раскрывай ноутбук</h2>
+          <p className="pill subtle">Видео калькулятора</p>
+          <h2>Калькулятор в работе</h2>
 
-          <div className="public-laptop-meta">
-            <span>Сцена открыта</span>
-            <strong>{Math.round(openProgress * 100)}%</strong>
-          </div>
-          <button type="button" className="ghost" onClick={() => openTab('auth')}>
-            Открыть доступ
+          <button type="button" className="ghost" onClick={() => openTab(authenticated ? 'calculator' : 'auth')}>
+            {authenticated ? 'Перейти в калькулятор' : 'Открыть доступ'}
           </button>
+
+          <div className="public-laptop-insights">
+            {VIDEO_INFO_ITEMS.map((item) => (
+              <article className="public-laptop-insight-card" key={item.title}>
+                <strong>{item.value}</strong>
+                <span>{item.title}</span>
+              </article>
+            ))}
+          </div>
         </div>
 
         <div
@@ -218,7 +219,7 @@ function PublicLaptopShowcase({ openTab }) {
                 <div className="public-laptop-video-shell">
                   <div className="public-laptop-video-badge">
                     <span className="public-laptop-video-dot" />
-                    <span>Наши заказчики</span>
+                    <span>Превью расчётного сценария</span>
                   </div>
 
                   <video
@@ -257,6 +258,28 @@ function PublicLaptopShowcase({ openTab }) {
   );
 }
 
+function SystemPulseSection() {
+  return (
+    <section className="system-pulse-section">
+      <div className="system-pulse-head">
+        <div>
+          <p className="pill">Пульс системы</p>
+          <h2>Ключевые показатели</h2>
+        </div>
+      </div>
+
+      <div className="system-pulse-grid">
+        {SYSTEM_PULSE_ITEMS.map((item) => (
+          <article className="system-pulse-card" key={item.title}>
+            <strong>{item.value}</strong>
+            <span>{item.title}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PublicHome({ heroIndex, openTab }) {
   return (
     <>
@@ -266,13 +289,9 @@ function PublicHome({ heroIndex, openTab }) {
           style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.88), rgba(13, 14, 18, 0.38)), url(${HERO_IMAGES[heroIndex]})` }}
         >
           <div className="hero-content fade-up">
-            <p className="pill">BuildFlow</p>
-            <h1>Закрытая рабочая зона для строительных проектов</h1>
-            <div className="hero-actions">
-              <button type="button" onClick={() => openTab('auth')}>
-                Войти
-              </button>
-            </div>
+            <p className="pill">{BRAND_NAME}</p>
+            <h1>Строительные расчёты и материалы в одном сервисе</h1>
+            <p className="hero-description">Главная показывает разделы, калькулятор и поддержку.</p>
             <div className="hero-signal-row">
               {PUBLIC_SIGNAL_ITEMS.map((item) => (
                 <div className="hero-signal-card public" key={item.label}>
@@ -285,20 +304,14 @@ function PublicHome({ heroIndex, openTab }) {
         </div>
       </section>
 
-      <PublicLaptopShowcase openTab={openTab} />
-
-      <section className="public-quiet-zone">
-        <div className="public-quiet-line" />
-        <div className="public-quiet-copy">
-          <p className="pill subtle">Private Workspace</p>
-          <h2>Личный кабинет и рабочие инструменты скрыты до авторизации</h2>
-        </div>
-      </section>
+      <WorkspaceLaunchpad authenticated={false} openTab={openTab} />
+      <CalculatorPreviewSection authenticated={false} openTab={openTab} />
+      <SystemPulseSection />
     </>
   );
 }
 
-function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
+function PrivateHome({ heroIndex, openTab }) {
   return (
     <>
       <section className="hero-shell">
@@ -307,8 +320,9 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
           style={{ backgroundImage: `linear-gradient(120deg, rgba(13, 14, 18, 0.86), rgba(13, 14, 18, 0.36)), url(${HERO_IMAGES[heroIndex]})` }}
         >
           <div className="hero-content fade-up">
-            <p className="pill">BuildFlow</p>
-            <h1>Материалы, расчёты и сделки в одном ритме</h1>
+            <p className="pill">{BRAND_NAME}</p>
+            <h1>Материалы, расчёты и кабинет в одном месте</h1>
+            <p className="hero-description">Быстрый вход в основные разделы.</p>
             <div className="hero-actions">
               <button type="button" onClick={() => openTab('materials')}>
                 Материалы
@@ -318,7 +332,7 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
               </button>
             </div>
             <div className="hero-signal-row">
-              {PRIVATE_SIGNAL_ITEMS.map((item) => (
+              {WORKSPACE_SIGNAL_ITEMS.map((item) => (
                 <div className="hero-signal-card" key={item.label}>
                   <strong>{item.value}</strong>
                   <span>{item.label}</span>
@@ -329,78 +343,17 @@ function PrivateHome({ heroIndex, openTab, visibleWidgets }) {
         </div>
       </section>
 
-      <section className="media-grid">
-        {PRIVATE_GALLERY_IMAGES.map((item) => (
-          <article
-            className="media-card interactive"
-            key={item.src}
-            onClick={() => openTab(item.tab)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && openTab(item.tab)}
-          >
-            <img src={item.src} alt={item.title} />
-            <div className="media-card-body">
-              <p>{item.title}</p>
-              <small>{item.description}</small>
-              <span>{item.cta}</span>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="efficiency-zone">
-        <div className="efficiency-head">
-          <p className="pill">Пульс проекта</p>
-        </div>
-
-        <div className="analytics-lane">
-          {ANALYTICS_WIDGETS.map((widget, index) => (
-            <article
-              className={`analytics-widget ${index % 2 ? 'align-right' : 'align-left'} ${visibleWidgets[index] ? 'revealed' : ''}`}
-              key={widget.title}
-              data-metric={index}
-              style={{ '--index': index }}
-            >
-              <div className="widget-copy">
-                <p className="metric-label">{widget.title}</p>
-                <strong>{widget.value}%</strong>
-                <p>{widget.subtitle}</p>
-              </div>
-              <WidgetVisual widget={widget} revealed={Boolean(visibleWidgets[index])} />
-            </article>
-          ))}
-        </div>
-      </section>
+      <WorkspaceLaunchpad authenticated openTab={openTab} />
+      <CalculatorPreviewSection authenticated openTab={openTab} />
+      <SystemPulseSection />
     </>
   );
 }
 
 export default function HomeSection({ heroIndex, openTab, authenticated }) {
-  const [visibleWidgets, setVisibleWidgets] = useState({});
-
-  useEffect(() => {
-    if (!authenticated) return undefined;
-
-    const cards = document.querySelectorAll('.analytics-widget');
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisibleWidgets((prev) => ({ ...prev, [entry.target.dataset.metric]: true }));
-          }
-        });
-      },
-      { threshold: 0.35 }
-    );
-
-    cards.forEach((card) => observer.observe(card));
-    return () => observer.disconnect();
-  }, [authenticated]);
-
   if (!authenticated) {
     return <PublicHome heroIndex={heroIndex} openTab={openTab} />;
   }
 
-  return <PrivateHome heroIndex={heroIndex} openTab={openTab} visibleWidgets={visibleWidgets} />;
+  return <PrivateHome heroIndex={heroIndex} openTab={openTab} />;
 }
